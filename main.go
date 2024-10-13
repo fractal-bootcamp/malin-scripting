@@ -8,6 +8,38 @@ import (
 	"strings"
 )
 
+// Config holds all configuration variables
+type Config struct {
+	Reader         *bufio.Reader
+	PackageManager string
+	Cmd            *exec.Cmd
+}
+
+// Global configuration instance
+var AppConfig Config
+
+// This special function runs before main().
+func init() {
+	// initialize the reader
+	AppConfig.Reader = bufio.NewReader(os.Stdin)
+
+	//decide which package manager to use
+	fmt.Print("Do you want to use npm or bun? (npm/bun): ")
+	choosePackageManager, _ := AppConfig.Reader.ReadString('\n')
+	AppConfig.PackageManager = strings.TrimSpace(strings.ToLower(choosePackageManager))
+
+	switch AppConfig.PackageManager {
+	case "npm":
+		AppConfig.Cmd = exec.Command("npm", "create", "vite@latest")
+	case "bun":
+		AppConfig.Cmd = exec.Command("bun", "create", "vite")
+	default:
+		fmt.Println("Invalid package manager. Please choose 'npm' or 'bun'.")
+		os.Exit(1)
+	}
+}
+
+// function for running command line commands
 func runInteractiveCommand(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 	cmd.Stdout = os.Stdout
@@ -16,41 +48,35 @@ func runInteractiveCommand(name string, arg ...string) error {
 	return cmd.Run()
 }
 
+// function for asking the user Yes or No
+// it follows the following pattern:
+// installTailwind := askYesNo(reader, "Do you want to install Tailwind CSS?")
+// if (installTailwind {})
 func askYesNo(reader *bufio.Reader, question string) bool {
 	fmt.Print(question + " (y/n): ")
 	answer, _ := reader.ReadString('\n')
 	return strings.TrimSpace(strings.ToLower(answer)) == "y"
 }
 
-func main() {
-	reader := bufio.NewReader(os.Stdin)
+func getUserInput(prompt string) string {
+	fmt.Print(prompt)
+	input, _ := AppConfig.Reader.ReadString('\n')
+	return strings.TrimSpace(input)
+}
+
+func deployFrontend() {
 
 	fmt.Print("Okay let's setup the frontend...\nWhat do you want to name this folder? ")
-	projectName, _ := reader.ReadString('\n')
-	projectName = strings.TrimSpace(projectName)
+	getProjectName, _ := AppConfig.Reader.ReadString('\n')
+	getProjectName = strings.TrimSpace(getProjectName)
 
-	fmt.Print("Do you want to use npm or bun? (npm/bun): ")
-	packageManager, _ := reader.ReadString('\n')
-	packageManager = strings.TrimSpace(strings.ToLower(packageManager))
-
-	var cmd *exec.Cmd
-	switch packageManager {
-	case "npm":
-		cmd = exec.Command("npm", "create", "vite@latest", projectName)
-	case "bun":
-		cmd = exec.Command("bun", "create", "vite", projectName)
-	default:
-		fmt.Println("Invalid package manager. Please choose 'npm' or 'bun'.")
-		os.Exit(1)
-	}
-
-	err := runInteractiveCommand(cmd.Path, cmd.Args[1:]...)
+	err := runInteractiveCommand(AppConfig.Cmd.Path, AppConfig.Cmd.Args[1:]...)
 	if err != nil {
 		fmt.Printf("Error creating project: %v\n", err)
 		os.Exit(1)
 	}
 
-	err = os.Chdir(projectName)
+	err = os.Chdir(getProjectName)
 	if err != nil {
 		fmt.Printf("Error changing to project directory: %v\n", err)
 		os.Exit(1)
@@ -58,7 +84,7 @@ func main() {
 
 	fmt.Println("Installing dependencies...")
 	var installCmd *exec.Cmd
-	if packageManager == "npm" {
+	if AppConfig.PackageManager == "npm" {
 		installCmd = exec.Command("npm", "install")
 	} else {
 		installCmd = exec.Command("bun", "install")
@@ -70,13 +96,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	installTailwind := askYesNo(reader, "Do you want to install Tailwind CSS?")
+	installTailwind := askYesNo(AppConfig.Reader, "Do you want to install Tailwind CSS?")
 
 	if installTailwind {
 		fmt.Println("Installing Tailwind CSS...")
 		var tailwindCmd *exec.Cmd
 		var initCmd *exec.Cmd
-		if packageManager == "npm" {
+		if AppConfig.PackageManager == "npm" {
 			tailwindCmd = exec.Command("npm", "install", "-D", "tailwindcss", "postcss", "autoprefixer")
 			initCmd = exec.Command("npx", "tailwindcss", "init", "-p")
 		} else {
@@ -96,7 +122,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		installDaisyUI := askYesNo(reader, "Do you want to install DaisyUI?")
+		installDaisyUI := askYesNo(AppConfig.Reader, "Do you want to install DaisyUI?")
 
 		tailwindConfig := `/** @type {import('tailwindcss').Config} */
 export default {
@@ -112,7 +138,7 @@ export default {
 		if installDaisyUI {
 			fmt.Println("Installing DaisyUI...")
 			var daisyUICmd *exec.Cmd
-			if packageManager == "npm" {
+			if AppConfig.PackageManager == "npm" {
 				daisyUICmd = exec.Command("npm", "install", "-D", "daisyui@latest")
 			} else {
 				daisyUICmd = exec.Command("bun", "add", "-D", "daisyui@latest")
@@ -151,10 +177,10 @@ export default {
 	}
 
 	// Ask the user if they wan to install react-router-dom
-	if askYesNo(reader, "Do you want to install react-router-dom?") {
+	if askYesNo(AppConfig.Reader, "Do you want to install react-router-dom?") {
 		fmt.Println("Installing react-router-dom...")
 		var routerCmd *exec.Cmd
-		if packageManager == "npm" {
+		if AppConfig.PackageManager == "npm" {
 			routerCmd = exec.Command("npm", "install", "react-router-dom")
 		} else {
 			routerCmd = exec.Command("bun", "add", "react-router-dom")
@@ -170,10 +196,10 @@ export default {
 	}
 
 	// Ask the user if they wan to install axios
-	if askYesNo(reader, "Do you want to install axios?") {
+	if askYesNo(AppConfig.Reader, "Do you want to install axios?") {
 		fmt.Println("Installing axios...")
 		var axiosCmd *exec.Cmd
-		if packageManager == "npm" {
+		if AppConfig.PackageManager == "npm" {
 			axiosCmd = exec.Command("npm", "install", "axios")
 		} else {
 			axiosCmd = exec.Command("bun", "add", "axios")
@@ -191,10 +217,10 @@ export default {
 	fmt.Println("\nReact Vite project created successfully!")
 
 	// Ask the user if they want to run a development server now
-	if askYesNo(reader, "\nDo you want to start the development server now?") {
+	if askYesNo(AppConfig.Reader, "\nDo you want to start the development server now?") {
 		fmt.Println("Creating server...")
 		var runServerCmd *exec.Cmd
-		if packageManager == "npm" {
+		if AppConfig.PackageManager == "npm" {
 			runServerCmd = exec.Command("npm", "run", "dev")
 		} else {
 			runServerCmd = exec.Command("bun", "run", "dev")
@@ -203,10 +229,51 @@ export default {
 		// Building the development server
 		err = runInteractiveCommand(runServerCmd.Path, runServerCmd.Args[1:]...)
 		if err != nil {
-			fmt.Printf("Error installing axios: %v\n", err)
+			fmt.Printf("Error building server: %v\n", err)
 			os.Exit(1)
 		}
-		//fmt.Println("axios installed successfully!")
 	}
+}
+
+func deployBackend() {
+	fmt.Print("Okay let's setup the backend...\n")
+	// projectName, _ := reader.ReadString('\n')
+	// projectName = strings.TrimSpace(projectName)
+
+	fmt.Print("Do you want to use npm or bun? (npm/bun): ")
+	packageManager, _ := AppConfig.Reader.ReadString('\n')
+	packageManager = strings.TrimSpace(strings.ToLower(packageManager))
+
+	var cmd *exec.Cmd
+	cmd = exec.Command("bun", "init")
+
+	err := runInteractiveCommand(cmd.Path, cmd.Args[1:]...)
+	if err != nil {
+		fmt.Printf("Error creating project: %v\n", err)
+		os.Exit(1)
+	}
+
+	// EXPRESSJS
+	// install dev dependencies: express, @types/express, cors, @types/cors, dotenv
+	// AUTHENTICATION:
+	// clerk or firebase
+	// DATABASE
+	// generate docker yaml file
+	// install prisma (prisma, @prisma/client)
+	// prisma init
+	// generate prisma
+}
+
+func deployFullstack() {
+	deployFrontend()
+	deployBackend()
+}
+
+func main() {
+
+	// Do you want to setup: backend, frontend or fullstack?
+	// if frontend --> fn(frontend),
+	// if backend --> fn(backend),
+	// if fullstack --> fn(frontend) + fn(backend)
 
 }
