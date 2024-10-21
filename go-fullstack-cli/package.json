@@ -1,0 +1,19 @@
+{
+  "name": "go-fullstack-cli",
+  "version": "1.0.0",
+  "description": "A CLI tool for setting up fullstack projects",
+  "main": "index.js",
+  "bin": {
+    "go-fullstack-cli": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "bin"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["cli", "fullstack", "react", "vite", "express"],
+  "author": "Your Name",
+  "license": "MIT"
+}

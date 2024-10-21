@@ -1,0 +1,14 @@
+# Source files
+*.go
+
+# Build files
+Makefile
+.github
+
+# Git files
+.gitignore
+.git
+
+# Other
+README.md
+LICENSE
