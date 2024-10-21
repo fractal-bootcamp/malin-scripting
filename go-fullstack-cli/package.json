@@ -1,10 +1,10 @@
 {
-  "name": "go-fullstack-cli",
+  "name": "boilerpl8",
   "version": "1.0.0",
-  "description": "A CLI tool for setting up fullstack projects",
+  "description": "A CLI tool for generating fullstack project boilerplates",
   "main": "index.js",
   "bin": {
-    "go-fullstack-cli": "./index.js"
+    "boilerpl8": "./index.js"
   },
   "files": [
     "index.js",
@@ -13,7 +13,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["cli", "fullstack", "react", "vite", "express"],
-  "author": "Your Name",
+  "keywords": ["cli", "fullstack", "react", "vite", "express", "nextjs"],
+  "author": "kmankan",
   "license": "MIT"
 }

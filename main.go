@@ -33,6 +33,8 @@ type Config struct {
 	// general
 	ChangeDirectoryIntoCmd  *exec.Cmd
 	ChangeDirectoryOutOfCmd *exec.Cmd
+	// Add a new field to Config struct
+	SelectedFramework string
 }
 
 // Global configuration instance
@@ -46,7 +48,14 @@ func init() {
 	//decide which package manager to use
 	fmt.Print("Do you want to use npm or bun? (npm/bun): ")
 	choosePackageManager, _ := AppConfig.Reader.ReadString('\n')
-	AppConfig.PackageManager = strings.TrimSpace(strings.ToLower(choosePackageManager))
+	choosePackageManager = strings.TrimSpace(strings.ToLower(choosePackageManager))
+
+	if choosePackageManager != "npm" && choosePackageManager != "bun" {
+		fmt.Println("Error: Invalid package manager selected. Please choose either 'npm' or 'bun'.")
+		os.Exit(1)
+	}
+
+	AppConfig.PackageManager = choosePackageManager
 }
 
 func runInteractiveCommand(name string, arg ...string) (string, error) {
@@ -118,14 +127,31 @@ func createFrontendProject() {
 	projectName, _ := AppConfig.Reader.ReadString('\n')
 	projectName = strings.TrimSpace(projectName)
 
-	// decide which command to run depending on the users package manager selection
-	switch AppConfig.PackageManager {
-	case "npm":
-		AppConfig.InstallFrontendCmd = exec.Command("npm", "create", "vite@latest", projectName)
-	case "bun":
-		AppConfig.InstallFrontendCmd = exec.Command("bun", "create", "vite", projectName)
+	fmt.Println("Which framework do you want to use?")
+	fmt.Println("1. Vite")
+	fmt.Println("2. Next.js")
+	frameworkChoice, _ := AppConfig.Reader.ReadString('\n')
+	frameworkChoice = strings.TrimSpace(frameworkChoice)
+
+	switch frameworkChoice {
+	case "1":
+		// Vite setup
+		AppConfig.SelectedFramework = "vite"
+		switch AppConfig.PackageManager {
+		case "npm":
+			AppConfig.InstallFrontendCmd = exec.Command("npm", "create", "vite@latest", projectName)
+		case "bun":
+			AppConfig.InstallFrontendCmd = exec.Command("bun", "create", "vite", projectName)
+		default:
+			fmt.Println("Invalid package manager. Please choose 'npm' or 'bun'.")
+			os.Exit(1)
+		}
+	case "2":
+		// Next.js setup
+		AppConfig.SelectedFramework = "nextjs"
+		AppConfig.InstallFrontendCmd = exec.Command("npx", "create-next-app@latest", projectName)
 	default:
-		fmt.Println("Invalid package manager. Please choose 'npm' or 'bun'.")
+		fmt.Println("Invalid choice. Please choose '1' for Vite or '2' for Next.js.")
 		os.Exit(1)
 	}
 
@@ -158,6 +184,10 @@ func installDependencies() {
 }
 
 func installTailwind() {
+	if AppConfig.SelectedFramework != "vite" {
+		return
+	}
+
 	installTailwind := askYesNo("Do you want to install Tailwind CSS?")
 
 	if installTailwind {
@@ -184,10 +214,16 @@ func installTailwind() {
 			fmt.Printf("Error installing Tailwind CSS: %v\n", err2)
 			os.Exit(1)
 		}
+
+		fmt.Println("Tailwind CSS installed and configured successfully!")
 	}
 }
 
 func installDaisyUI() {
+	if AppConfig.SelectedFramework != "vite" {
+		return
+	}
+
 	installDaisyUI := askYesNo("Do you want to install DaisyUI?")
 
 	tailwindConfigWithDaisyUI := `/** @type {import('tailwindcss').Config} */
@@ -236,7 +272,7 @@ export default {
 			os.Exit(1)
 		}
 
-		fmt.Println("Tailwind CSS installed and configured successfully!")
+		fmt.Println("DaisyUI installed and configured successfully!")
 	}
 }
 
@@ -466,7 +502,7 @@ func deployFrontend() {
 	installDaisyUI()
 	installReactRouterDom()
 	installAxios()
-	fmt.Println("\nReact Vite project created successfully!")
+	fmt.Println("\nFrontend project created successfully!")
 	RunFrontendServer()
 }
 
